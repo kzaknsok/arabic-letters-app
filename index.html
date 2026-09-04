@@ -394,7 +394,7 @@
             const coverageRatio = matchedPixelCount / guidePixelCount;
 
             // 81% -> 96% に変更（端までぴったり綺麗になぞらないとクリアできません）
-            if (coverageRatio >= 0.85) {
+            if (coverageRatio >= 0.82) {
                 isCompleted = true;
                 statusDiv.textContent = '✨ PERFECT!';
                 playSound();
