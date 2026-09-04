@@ -283,7 +283,11 @@
                 });
             });
 
-            // 画面上のあらゆる操作で音声ブロックを解除するイベントを追加
+            // クリアボタンと発音ボタンのイベントリスナーを設定
+            btnClear.addEventListener('click', clearUserCanvas);
+            btnSound.addEventListener('click', playSound);
+
+            // 画面上の手動操作で音声ブロックを初期化
             document.addEventListener('pointerdown', unlockAudio, { once: true });
             document.addEventListener('click', unlockAudio, { once: true });
 
@@ -326,7 +330,6 @@
         function playSound() {
             const letterId = ARABIC_LETTERS[currentLetterIndex].id;
 
-            // 再生中の音があれば止める
             if (currentAudio) {
                 currentAudio.pause();
                 currentAudio.currentTime = 0;
@@ -336,11 +339,9 @@
             currentAudio.play().catch(err => console.error("Audio play error:", err));
         }
 
-        // ブラウザの音声ブロックを解除する関数
         function unlockAudio() {
             if (isAudioUnlocked) return;
 
-            // サイレント再生（またはダミー再生）でブラウザに許可を与える
             const dummy = new Audio();
             dummy.play().then(() => {
                 isAudioUnlocked = true;
@@ -442,12 +443,10 @@
 
             if (totalGuidePixels === 0 || totalDrawnPixels === 0) return;
 
-            // 【追加条件】ガイド文字の全体面積に対して最低限塗られている割合（全体の被覆率）
-            // 筆記途中で横線だけをサッと引いた段階でのフライング判定をガード
+            // 塗り潰し強制を避けるため最低被覆率を 0.35 に調整
             const overallFillRatio = totalMatchedPixels / totalGuidePixels;
-            if (overallFillRatio < 0.45) return;
+            if (overallFillRatio < 0.35) return;
 
-            // 1. 文字が存在する「有効なブロック（ゾーン）」を特定
             let activeBlocks = 0;
             let satisfiedBlocks = 0;
 
@@ -456,8 +455,8 @@
                     const cell = grid[gy][gx];
                     if (cell.guidePixels > 10) {
                         activeBlocks++;
-                        // 【変更点】マスの通過条件を 0.35 → 0.50（50%）に引き上げ
-                        if ((cell.matchedPixels / cell.guidePixels) >= 0.50) {
+                        // マス内被覆率を 40% に設定して無理な塗りつぶしを抑止
+                        if ((cell.matchedPixels / cell.guidePixels) >= 0.40) {
                             satisfiedBlocks++;
                         }
                     }
@@ -466,16 +465,11 @@
 
             if (activeBlocks === 0) return;
 
-            // 2. ゾーン網羅率
             const blockCoverageRatio = satisfiedBlocks / activeBlocks;
-
-            // 3. はみ出し率（精度）
             const precisionRatio = totalMatchedPixels / totalDrawnPixels;
 
-            // 【判定基準の強化】
-            // ・ブロック網羅率を 0.60 → 0.72（72%）に引き上げ
-            // ・精度を 0.20 → 0.25 に微増
-            if (blockCoverageRatio >= 0.72 && precisionRatio >= 0.25) {
+            // 筆記となぞり書きの操作感に合わせたクリア条件
+            if (blockCoverageRatio >= 0.65 && precisionRatio >= 0.20) {
                 isCompleted = true;
                 statusDiv.textContent = '✨ PERFECT!';
                 playSound();
