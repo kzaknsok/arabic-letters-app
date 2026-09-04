@@ -15,7 +15,6 @@
             margin: 0;
             padding: 16px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            /* 漆黒〜深みのあるダークグレーのグラデーション */
             background: #050507;
             background-image:
                 radial-gradient(at 0% 0%, rgba(255, 255, 255, 0.03) 0px, transparent 50%),
@@ -30,7 +29,6 @@
             overflow-x: hidden;
         }
 
-        /* 光沢と透過感を最大化したグラスモーフィズムカード */
         .card {
             position: relative;
             background: rgba(18, 18, 20, 0.4);
@@ -216,34 +214,34 @@
 
     <script>
         const ARABIC_LETTERS = [
-            { name: "1. Alif (アリフ)", forms: ["ا", "ا", "ـا", "ـا"] },
-            { name: "2. Ba (バー)", forms: ["ب", "بـ", "ـبـ", "ـب"] },
-            { name: "3. Ta (ター)", forms: ["ت", "تـ", "ـتـ", "ـت"] },
-            { name: "4. Tha (サー)", forms: ["ث", "ثـ", "ـثـ", "ـث"] },
-            { name: "5. Jim (ジーム)", forms: ["ج", "جـ", "ـجـ", "ـج"] },
-            { name: "6. Ha (ハー)", forms: ["ح", "حـ", "ـحـ", "ـح"] },
-            { name: "7. Kha (ハー)", forms: ["خ", "خـ", "ـخـ", "ـخ"] },
-            { name: "8. Dal (ダール)", forms: ["د", "د", "ـد", "ـد"] },
-            { name: "9. Dhal (ザール)", forms: ["ذ", "ذ", "ـذ", "ـذ"] },
-            { name: "10. Ra (ラー)", forms: ["ر", "ر", "ـر", "ـر"] },
-            { name: "11. Zay (ザイ)", forms: ["ز", "ز", "ـز", "ـز"] },
-            { name: "12. Sin (シーン)", forms: ["س", "سـ", "ـسـ", "ـس"] },
-            { name: "13. Shin (シーン)", forms: ["ش", "شـ", "ـشـ", "ـش"] },
-            { name: "14. Sad (サード)", forms: ["ص", "صـ", "ـصـ", "ـص"] },
-            { name: "15. Dad (ダード)", forms: ["ض", "ضـ", "ـضـ", "ـض"] },
-            { name: "16. Ta (ター/強調)", forms: ["ط", "طـ", "ـطـ", "ـط"] },
-            { name: "17. Dha (ザー/強調)", forms: ["ظ", "ظـ", "ـظـ", "ـظ"] },
-            { name: "18. Ayn (アイン)", forms: ["ع", "عـ", "ـعـ", "ـع"] },
-            { name: "19. Ghayn (ガイン)", forms: ["غ", "غـ", "ـغـ", "ـغ"] },
-            { name: "20. Fa (ファー)", forms: ["ف", "فـ", "ـفـ", "ـف"] },
-            { name: "21. Qaf (カーフ)", forms: ["ق", "قـ", "ـقـ", "ـق"] },
-            { name: "22. Kaf (カーフ)", forms: ["ك", "كـ", "ـكـ", "ـك"] },
-            { name: "23. Lam (ラーム)", forms: ["ل", "لـ", "ـلـ", "ـل"] },
-            { name: "24. Mim (ミーム)", forms: ["م", "مـ", "ـمـ", "ـم"] },
-            { name: "25. Nun (ヌーン)", forms: ["ن", "نـ", "ـنـ", "ـن"] },
-            { name: "26. Ha (ハー)", forms: ["ه", "هـ", "ـهـ", "ـه"] },
-            { name: "27. Waw (ワウ)", forms: ["و", "و", "ـو", "ـو"] },
-            { name: "28. Ya (ヤー)", forms: ["ي", "يـ", "ـيـ", "ـي"] }
+            { id: 1, name: "1. Alif (アリフ)", forms: ["ا", "ا", "ـا", "ـا"] },
+            { id: 2, name: "2. Ba (バー)", forms: ["ب", "بـ", "ـبـ", "ـب"] },
+            { id: 3, name: "3. Ta (ター)", forms: ["ت", "تـ", "ـتـ", "ـت"] },
+            { id: 4, name: "4. Tha (サー)", forms: ["ث", "ثـ", "ـثـ", "ـث"] },
+            { id: 5, name: "5. Jim (ジーム)", forms: ["ج", "جـ", "ـجـ", "ـج"] },
+            { id: 6, name: "6. Ha (ハー)", forms: ["ح", "حـ", "ـحـ", "ـح"] },
+            { id: 7, name: "7. Kha (ハー)", forms: ["خ", "خـ", "ـخـ", "ـخ"] },
+            { id: 8, name: "8. Dal (ダール)", forms: ["د", "د", "ـد", "ـد"] },
+            { id: 9, name: "9. Dhal (ザール)", forms: ["ذ", "ذ", "ـذ", "ـذ"] },
+            { id: 10, name: "10. Ra (ラー)", forms: ["ر", "ر", "ـر", "ـر"] },
+            { id: 11, name: "11. Zay (ザイ)", forms: ["ز", "ز", "ـز", "ـز"] },
+            { id: 12, name: "12. Sin (シーン)", forms: ["س", "سـ", "ـسـ", "ـس"] },
+            { id: 13, name: "13. Shin (シーン)", forms: ["ش", "شـ", "ـشـ", "ـش"] },
+            { id: 14, name: "14. Sad (サード)", forms: ["ص", "صـ", "ـصـ", "ـص"] },
+            { id: 15, name: "15. Dad (ダード)", forms: ["ض", "ضـ", "ـضـ", "ـض"] },
+            { id: 16, name: "16. Ta (ター/強調)", forms: ["ط", "طـ", "ـطـ", "ـط"] },
+            { id: 17, name: "17. Dha (ザー/強調)", forms: ["ظ", "ظـ", "ـظـ", "ـظ"] },
+            { id: 18, name: "18. Ayn (アイン)", forms: ["ع", "عـ", "ـعـ", "ـع"] },
+            { id: 19, name: "19. Ghayn (ガイン)", forms: ["غ", "غـ", "ـغـ", "ـغ"] },
+            { id: 20, name: "20. Fa (ファー)", forms: ["ف", "فـ", "ـفـ", "ـف"] },
+            { id: 21, name: "21. Qaf (カーフ)", forms: ["ق", "قـ", "ـقـ", "ـق"] },
+            { id: 22, name: "22. Kaf (カーフ)", forms: ["ك", "كـ", "ـكـ", "ـك"] },
+            { id: 23, name: "23. Lam (ラーム)", forms: ["ل", "لـ", "ـلـ", "ـل"] },
+            { id: 24, name: "24. Mim (ミーム)", forms: ["م", "مـ", "ـمـ", "ـم"] },
+            { id: 25, name: "25. Nun (ヌーン)", forms: ["ن", "نـ", "ـنـ", "ـن"] },
+            { id: 26, name: "26. Ha (ハー)", forms: ["ه", "هـ", "ـهـ", "ـه"] },
+            { id: 27, name: "27. Waw (ワウ)", forms: ["و", "و", "ـو", "ـو"] },
+            { id: 28, name: "28. Ya (ヤー)", forms: ["ي", "يـ", "ـيـ", "ـي"] }
         ];
 
         let currentLetterIndex = 0;
@@ -298,7 +296,6 @@
         function drawGuide() {
             guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
 
-            // ダークテーマに映える落ち着いた赤破線
             guideCtx.strokeStyle = 'rgba(244, 63, 94, 0.25)';
             guideCtx.lineWidth = 1.5;
             guideCtx.setLineDash([8, 8]);
@@ -309,7 +306,6 @@
 
             const char = ARABIC_LETTERS[currentLetterIndex].forms[currentPosIndex];
             guideCtx.font = '280px "Traditional Arabic", "Amiri", "Segoe UI", sans-serif';
-            // 透き通る白い文字ガイド
             guideCtx.fillStyle = 'rgba(255, 255, 255, 0.22)';
             guideCtx.textAlign = 'center';
             guideCtx.textBaseline = 'alphabetic';
@@ -323,46 +319,15 @@
         }
 
         function playSound() {
-            const char = ARABIC_LETTERS[currentLetterIndex].forms[0];
-
-            // 発声設定
-            const utterance = new SpeechSynthesisUtterance(char);
-            utterance.lang = 'ar-SA'; // アラビア語（サウジアラビア）
-            utterance.rate = 0.7;    // 少しゆっくりめで聞き取りやすく
-
-            // 端末にインストールされている利用可能な音声一覧を取得
-            const voices = window.speechSynthesis.getVoices();
-
-            // アラビア語に対応した高品質なボイスを自動選択
-            const arabicVoice = voices.find(v => v.lang.startsWith('ar'));
-            if (arabicVoice) {
-                utterance.voice = arabicVoice;
-            }
-
-            // 読み上げ中の重複を防止して再生
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(utterance);
-        }
-
-        // iOS/Safari等でボイスリストが遅れて読み込まれる対策
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.onvoiceschanged = () => {
-                window.speechSynthesis.getVoices();
-            };
-        }
-
-        function fallbackTTS(char) {
-            const utterance = new SpeechSynthesisUtterance(char);
-            utterance.lang = 'ar-SA';
-            utterance.rate = 0.8;
-            window.speechSynthesis.speak(utterance);
+            const letterId = ARABIC_LETTERS[currentLetterIndex].id;
+            const audio = new Audio(`audio/${letterId}.mp3`);
+            audio.play().catch(err => console.error("Audio play error:", err));
         }
 
         function setupDrawingEvents() {
             drawCtx.lineCap = 'round';
             drawCtx.lineJoin = 'round';
             drawCtx.lineWidth = 32;
-            // ネオンブルーの発光感のある描画線
             drawCtx.strokeStyle = '#38bdf8';
 
             const getPos = (e) => {
