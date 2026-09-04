@@ -422,7 +422,8 @@
             const guideData = guideCtx.getImageData(0, 0, w, h).data;
             const drawData = drawCtx.getImageData(0, 0, w, h).data;
 
-            const GRID_SIZE = 12;
+            // 1. メッシュを18x18に細分化して精度を大幅に向上
+            const GRID_SIZE = 18;
             const cellW = w / GRID_SIZE;
             const cellH = h / GRID_SIZE;
 
@@ -438,11 +439,12 @@
             let totalMatchedPixels = 0;
             let totalDrawnPixels = 0;
 
+            // 2. ピクセル単位の集計（サンプリング精度を維持）
             for (let y = 0; y < h; y += 2) {
                 for (let x = 0; x < w; x += 2) {
                     const idx = (y * w + x) * 4;
-                    const isGuide = guideData[idx + 3] > 15;
-                    const isDraw = drawData[idx + 3] > 15;
+                    const isGuide = guideData[idx + 3] > 15; // ガイドが表示されている箇所
+                    const isDraw = drawData[idx + 3] > 15;   // ユーザーが描いた箇所
 
                     const gx = Math.min(Math.floor(x / cellW), GRID_SIZE - 1);
                     const gy = Math.min(Math.floor(y / cellH), GRID_SIZE - 1);
@@ -463,20 +465,21 @@
                 }
             }
 
+            // 描画がない、またはガイドデータが無い場合は中断
             if (totalGuidePixels === 0 || totalDrawnPixels === 0) return;
 
-            const overallFillRatio = totalMatchedPixels / totalGuidePixels;
-            if (overallFillRatio < 0.35) return;
-
-            let activeBlocks = 0;
-            let satisfiedBlocks = 0;
+            // 3. ブロックごとの通過・被覆率チェック
+            let activeBlocks = 0;      // ガイドが存在する領域ブロック数
+            let satisfiedBlocks = 0;   // 十分に描画された領域ブロック数
 
             for (let gy = 0; gy < GRID_SIZE; gy++) {
                 for (let gx = 0; gx < GRID_SIZE; gx++) {
                     const cell = grid[gy][gx];
-                    if (cell.guidePixels > 10) {
+                    // ブロック内に一定以上のガイドピクセルが存在する場合のみ対象
+                    if (cell.guidePixels > 5) {
                         activeBlocks++;
-                        if ((cell.matchedPixels / cell.guidePixels) >= 0.40) {
+                        // 各ブロック内で45%以上塗られていれば合格
+                        if ((cell.matchedPixels / cell.guidePixels) >= 0.45) {
                             satisfiedBlocks++;
                         }
                     }
@@ -485,10 +488,16 @@
 
             if (activeBlocks === 0) return;
 
-            const blockCoverageRatio = satisfiedBlocks / activeBlocks;
-            const precisionRatio = totalMatchedPixels / totalDrawnPixels;
+            // --- 総合判定ロジック ---
+            const overallFillRatio = totalMatchedPixels / totalGuidePixels; // ガイド全体に対する塗り率
+            const blockCoverageRatio = satisfiedBlocks / activeBlocks;      // 合格ブロックの割合（なぞり残しチェック）
+            const precisionRatio = totalMatchedPixels / totalDrawnPixels;   // 描画に対するガイド内の割合（はみ出しチェック）
 
-            if (blockCoverageRatio >= 0.65 && precisionRatio >= 0.20) {
+            // 条件:
+            // A) ガイド全体の50%以上が塗られている
+            // B) 文字を構成する各領域ブロックの75%以上をしっかり通過・なぞっている
+            // C) 描いた線の35%以上がガイド枠内におさまっている（雑な塗りつぶし対策）
+            if (overallFillRatio >= 0.50 && blockCoverageRatio >= 0.75 && precisionRatio >= 0.35) {
                 isCompleted = true;
                 statusDiv.textContent = '✨ PERFECT!';
                 playSound();
