@@ -248,6 +248,8 @@
         let currentPosIndex = 0;
         let isDrawing = false;
         let isCompleted = false;
+        let currentAudio = null;
+        let isAudioUnlocked = false;
 
         const letterSelect = document.getElementById('letterSelect');
         const guideCanvas = document.getElementById('guideCanvas');
@@ -281,8 +283,9 @@
                 });
             });
 
-            btnSound.addEventListener('click', playSound);
-            btnClear.addEventListener('click', clearUserCanvas);
+            // 画面上のあらゆる操作で音声ブロックを解除するイベントを追加
+            document.addEventListener('pointerdown', unlockAudio, { once: true });
+            document.addEventListener('click', unlockAudio, { once: true });
 
             setupDrawingEvents();
             renderAll();
@@ -322,8 +325,26 @@
 
         function playSound() {
             const letterId = ARABIC_LETTERS[currentLetterIndex].id;
-            const audio = new Audio(`audio/${letterId}.mp3`);
-            audio.play().catch(err => console.error("Audio play error:", err));
+
+            // 再生中の音があれば止める
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+
+            currentAudio = new Audio(`audio/${letterId}.mp3`);
+            currentAudio.play().catch(err => console.error("Audio play error:", err));
+        }
+
+        // ブラウザの音声ブロックを解除する関数
+        function unlockAudio() {
+            if (isAudioUnlocked) return;
+
+            // サイレント再生（またはダミー再生）でブラウザに許可を与える
+            const dummy = new Audio();
+            dummy.play().then(() => {
+                isAudioUnlocked = true;
+            }).catch(() => { });
         }
 
         function setupDrawingEvents() {
@@ -378,7 +399,6 @@
             const guideData = guideCtx.getImageData(0, 0, w, h).data;
             const drawData = drawCtx.getImageData(0, 0, w, h).data;
 
-            // キャンバスを 12x12 のグリッド（144個のブロック）に分割
             const GRID_SIZE = 12;
             const cellW = w / GRID_SIZE;
             const cellH = h / GRID_SIZE;
@@ -422,6 +442,11 @@
 
             if (totalGuidePixels === 0 || totalDrawnPixels === 0) return;
 
+            // 【追加条件】ガイド文字の全体面積に対して最低限塗られている割合（全体の被覆率）
+            // 筆記途中で横線だけをサッと引いた段階でのフライング判定をガード
+            const overallFillRatio = totalMatchedPixels / totalGuidePixels;
+            if (overallFillRatio < 0.45) return;
+
             // 1. 文字が存在する「有効なブロック（ゾーン）」を特定
             let activeBlocks = 0;
             let satisfiedBlocks = 0;
@@ -429,11 +454,10 @@
             for (let gy = 0; gy < GRID_SIZE; gy++) {
                 for (let gx = 0; gx < GRID_SIZE; gx++) {
                     const cell = grid[gy][gx];
-                    // マスの中に文字のピクセルが存在する場合のみ対象
                     if (cell.guidePixels > 10) {
                         activeBlocks++;
-                        // マス内が 35% 以上塗られていれば「このゾーンは通過」
-                        if ((cell.matchedPixels / cell.guidePixels) >= 0.35) {
+                        // 【変更点】マスの通過条件を 0.35 → 0.50（50%）に引き上げ
+                        if ((cell.matchedPixels / cell.guidePixels) >= 0.50) {
                             satisfiedBlocks++;
                         }
                     }
@@ -442,16 +466,16 @@
 
             if (activeBlocks === 0) return;
 
-            // 2. ゾーン網羅率（文字が存在するブロックのうち、何％のブロックを通過したか）
+            // 2. ゾーン網羅率
             const blockCoverageRatio = satisfiedBlocks / activeBlocks;
 
-            // 3. はみ出し率（描画した線のうち、文字内におさまっている割合）
+            // 3. はみ出し率（精度）
             const precisionRatio = totalMatchedPixels / totalDrawnPixels;
 
-            // 【判定基準】
-            // ・文字が存在する全ブロック（右端〜左端、上〜下）の 60% 以上を通過していること
-            // ・描いた線の 20% 以上が文字枠に入っていること（塗りつぶし対策）
-            if (blockCoverageRatio >= 0.60 && precisionRatio >= 0.20) {
+            // 【判定基準の強化】
+            // ・ブロック網羅率を 0.60 → 0.72（72%）に引き上げ
+            // ・精度を 0.20 → 0.25 に微増
+            if (blockCoverageRatio >= 0.72 && precisionRatio >= 0.25) {
                 isCompleted = true;
                 statusDiv.textContent = '✨ PERFECT!';
                 playSound();
