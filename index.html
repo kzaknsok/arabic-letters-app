@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Arabic Letters App - Ultra Obsidian Glass</title>
+    <title>Arabic Letters App - Stroke Recognizer</title>
     <style>
         * {
             box-sizing: border-box;
@@ -249,6 +249,13 @@
         let isDrawing = false;
         let isCompleted = false;
 
+        // ユーザーが描いた点群データ（軌跡）
+        let userPoints = [];
+        // ガイド文字から自動抽出したお手本点群データ
+        let templatePoints = [];
+
+        const NUM_POINTS = 64; // リサンプルする点の数
+
         const letterSelect = document.getElementById('letterSelect');
         const guideCanvas = document.getElementById('guideCanvas');
         const drawCanvas = document.getElementById('drawCanvas');
@@ -290,12 +297,14 @@
 
         function renderAll() {
             clearUserCanvas();
-            drawGuide();
+            drawGuideAndExtractTemplate();
         }
 
-        function drawGuide() {
+        // ガイド文字を描画し、同時にピクセル群から「お手本ストロークデータ」を生成
+        function drawGuideAndExtractTemplate() {
             guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
 
+            // 基準線
             guideCtx.strokeStyle = 'rgba(244, 63, 94, 0.25)';
             guideCtx.lineWidth = 1.5;
             guideCtx.setLineDash([8, 8]);
@@ -304,17 +313,37 @@
             guideCtx.stroke();
             guideCtx.setLineDash([]);
 
+            // ガイド文字
             const char = ARABIC_LETTERS[currentLetterIndex].forms[currentPosIndex];
             guideCtx.font = '280px "Traditional Arabic", "Amiri", "Segoe UI", sans-serif';
             guideCtx.fillStyle = 'rgba(255, 255, 255, 0.22)';
             guideCtx.textAlign = 'center';
             guideCtx.textBaseline = 'alphabetic';
             guideCtx.fillText(char, 225, 300);
+
+            // ガイド描画のピクセル位置から「お手本の点群」を抽出・生成する
+            const imgData = guideCtx.getImageData(0, 0, 450, 450).data;
+            let rawPoints = [];
+            
+            // ピクセルをスキャン（右から左、上から下：アラビア語の運筆傾向に合わせる）
+            for (let x = 449; x >= 0; x -= 4) {
+                for (let y = 0; y < 450; y += 4) {
+                    const idx = (y * 450 + x) * 4;
+                    if (imgData[idx + 3] > 30) { // 文字のピクセルが存在する
+                        rawPoints.push({ x: x, y: y });
+                    }
+                }
+            }
+
+            if (rawPoints.length > 0) {
+                templatePoints = normalizeStroke(rawPoints);
+            }
         }
 
         function clearUserCanvas() {
             drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
             statusDiv.textContent = '';
+            userPoints = [];
             isCompleted = false;
         }
 
@@ -327,7 +356,7 @@
         function setupDrawingEvents() {
             drawCtx.lineCap = 'round';
             drawCtx.lineJoin = 'round';
-            drawCtx.lineWidth = 18; // 32 -> 18 に細くして大雑把な塗りを防止
+            drawCtx.lineWidth = 16;
             drawCtx.strokeStyle = '#38bdf8';
 
             const getPos = (e) => {
@@ -343,7 +372,9 @@
             const startDraw = (e) => {
                 if (isCompleted) return;
                 isDrawing = true;
+                userPoints = [];
                 const pos = getPos(e);
+                userPoints.push(pos);
                 drawCtx.beginPath();
                 drawCtx.moveTo(pos.x, pos.y);
             };
@@ -351,15 +382,15 @@
             const moveDraw = (e) => {
                 if (!isDrawing || isCompleted) return;
                 const pos = getPos(e);
+                userPoints.push(pos);
                 drawCtx.lineTo(pos.x, pos.y);
                 drawCtx.stroke();
-                checkCoverage();
             };
 
             const endDraw = () => {
                 if (isDrawing) {
                     isDrawing = false;
-                    checkCoverage();
+                    evaluateStroke();
                 }
             };
 
@@ -369,36 +400,130 @@
             drawCanvas.addEventListener('pointerleave', endDraw);
         }
 
-        function checkCoverage() {
-            if (isCompleted) return;
+        // --- $1 Recognizer アルゴリズム核心部 ---
 
-            const w = 450, h = 450;
-            const guideData = guideCtx.getImageData(0, 0, w, h).data;
-            const drawData = drawCtx.getImageData(0, 0, w, h).data;
+        function evaluateStroke() {
+            if (userPoints.length < 10) return; // 短すぎる線の無視
 
-            let guidePixelCount = 0;
-            let matchedPixelCount = 0;
+            // 1. ユーザーの描画した軌跡を正規化
+            const normUser = normalizeStroke(userPoints);
 
-            for (let i = 0; i < guideData.length; i += 4) {
-                const isGuidePixel = guideData[i + 3] > 10;
-                const isDrawPixel = drawData[i + 3] > 10;
+            // 2. お手本ストロークとの類似度（平均距離）を計算
+            const distance = pathDistance(normUser, templatePoints);
 
-                if (isGuidePixel) {
-                    guidePixelCount++;
-                    if (isDrawPixel) matchedPixelCount++;
-                }
-            }
+            // デバッグ表示（コンソールで確認可能）
+            // console.log("Stroke Distance Score:", distance);
 
-            if (guidePixelCount === 0) return;
-
-            const coverageRatio = matchedPixelCount / guidePixelCount;
-
-            // 81% -> 96% に変更（端までぴったり綺麗になぞらないとクリアできません）
-            if (coverageRatio >= 0.82) {
+            // 閾値判定 (距離が一定以下＝形・流れが合致している)
+            // 塗りつぶしを行うと点群がグチャグチャになり、距離は 100~300 以上に跳ね上がります
+            if (distance < 45) {
                 isCompleted = true;
                 statusDiv.textContent = '✨ PERFECT!';
                 playSound();
+            } else {
+                statusDiv.textContent = '❌ もういちど！';
+                setTimeout(() => {
+                    if (!isCompleted) statusDiv.textContent = '';
+                }, 1200);
             }
+        }
+
+        // ストローク（点群）の正規化処理
+        function normalizeStroke(points) {
+            let pts = resample(points, NUM_POINTS);
+            pts = scaleTo(pts, 200); // 200x200 の標準サイズにスケーリング
+            pts = translateTo(pts, { x: 0, y: 0 }); // 原点に移動
+            return pts;
+        }
+
+        // 点の数を一定（NUM_POINTS）にリサンプルする
+        function resample(points, n) {
+            const I = pathLength(points) / (n - 1);
+            let D = 0.0;
+            let newPoints = [points[0]];
+
+            for (let i = 1; i < points.length; i++) {
+                let d = distance(points[i - 1], points[i]);
+                if ((D + d) >= I) {
+                    let qx = points[i - 1].x + ((I - D) / d) * (points[i].x - points[i - 1].x);
+                    let qy = points[i - 1].y + ((I - D) / d) * (points[i].y - points[i - 1].y);
+                    let q = { x: qx, y: qy };
+                    newPoints.push(q);
+                    points.splice(i, 0, q);
+                    D = 0.0;
+                } else {
+                    D += d;
+                }
+            }
+
+            if (newPoints.length === n - 1) {
+                newPoints.push(points[points.length - 1]);
+            }
+            return newPoints;
+        }
+
+        // 2点間の距離
+        function distance(p1, p2) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // 全体のパス長
+        function pathLength(points) {
+            let d = 0;
+            for (let i = 1; i < points.length; i++) {
+                d += distance(points[i - 1], points[i]);
+            }
+            return d;
+        }
+
+        // 縦横比を維持しながらバウンディングボックスにサイズを正規化
+        function scaleTo(points, size) {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (let p of points) {
+                minX = Math.min(minX, p.x);
+                maxX = Math.max(maxX, p.x);
+                minY = Math.min(minY, p.y);
+                maxY = Math.max(maxY, p.y);
+            }
+            const width = maxX - minX;
+            const height = maxY - minY;
+            const scale = Math.max(width, height);
+
+            return points.map(p => ({
+                x: (p.x - minX) / (scale || 1) * size,
+                y: (p.y - minY) / (scale || 1) * size
+            }));
+        }
+
+        // 重心を原点(0,0)へ平行移動
+        function translateTo(points, pt) {
+            let c = centroid(points);
+            return points.map(p => ({
+                x: p.x - c.x + pt.x,
+                y: p.y - c.y + pt.y
+            }));
+        }
+
+        // 重心を求める
+        function centroid(points) {
+            let x = 0, y = 0;
+            for (let p of points) {
+                x += p.x;
+                y += p.y;
+            }
+            return { x: x / points.length, y: y / points.length };
+        }
+
+        // 2つの点群間の平均距離（点対点の距離）を求める
+        function pathDistance(pts1, pts2) {
+            if (pts1.length !== pts2.length) return Infinity;
+            let d = 0.0;
+            for (let i = 0; i < pts1.length; i++) {
+                d += distance(pts1[i], pts2[i]);
+            }
+            return d / pts1.length;
         }
 
         window.onload = init;
