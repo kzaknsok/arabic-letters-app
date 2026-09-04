@@ -248,7 +248,9 @@
         let currentPosIndex = 0;
         let isDrawing = false;
         let isCompleted = false;
-        let currentAudio = null;
+
+        // 音声保持用キャッシュとフラグ
+        const audioCache = {};
         let isAudioUnlocked = false;
 
         const letterSelect = document.getElementById('letterSelect');
@@ -262,6 +264,8 @@
         const posButtons = document.querySelectorAll('.pos-btn');
 
         function init() {
+            preloadAudios(); // 音声ファイルのメモリ先読み
+
             ARABIC_LETTERS.forEach((item, index) => {
                 const opt = document.createElement('option');
                 opt.value = index;
@@ -283,16 +287,24 @@
                 });
             });
 
-            // クリアボタンと発音ボタンのイベントリスナーを設定
             btnClear.addEventListener('click', clearUserCanvas);
             btnSound.addEventListener('click', playSound);
 
-            // 画面上の手動操作で音声ブロックを初期化
+            // ユーザーの最初の操作で全音声の自動再生制限を解除
             document.addEventListener('pointerdown', unlockAudio, { once: true });
             document.addEventListener('click', unlockAudio, { once: true });
 
             setupDrawingEvents();
             renderAll();
+        }
+
+        // 全音声オブジェクトを作成してメモリに事前に読み込む
+        function preloadAudios() {
+            ARABIC_LETTERS.forEach(item => {
+                const audio = new Audio(`audio/${item.id}.mp3`);
+                audio.preload = 'auto';
+                audioCache[item.id] = audio;
+            });
         }
 
         function renderAll() {
@@ -327,25 +339,31 @@
             isCompleted = false;
         }
 
+        // メモリキャッシュからの超高速再生関数
         function playSound() {
             const letterId = ARABIC_LETTERS[currentLetterIndex].id;
+            const audio = audioCache[letterId];
 
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio.currentTime = 0;
+            if (audio) {
+                audio.currentTime = 0; // 頭出し
+                audio.play().catch(err => console.error("Audio play error:", err));
             }
-
-            currentAudio = new Audio(`audio/${letterId}.mp3`);
-            currentAudio.play().catch(err => console.error("Audio play error:", err));
         }
 
+        // ブラウザの音声再生ブロックを一括解除
         function unlockAudio() {
             if (isAudioUnlocked) return;
 
-            const dummy = new Audio();
-            dummy.play().then(() => {
-                isAudioUnlocked = true;
-            }).catch(() => { });
+            const letterId = ARABIC_LETTERS[currentLetterIndex].id;
+            const audio = audioCache[letterId];
+
+            if (audio) {
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    isAudioUnlocked = true;
+                }).catch(() => { });
+            }
         }
 
         function setupDrawingEvents() {
@@ -443,7 +461,7 @@
 
             if (totalGuidePixels === 0 || totalDrawnPixels === 0) return;
 
-            // 塗り潰し強制を避けるため最低被覆率を 0.35 に調整
+            // 最低被覆率 0.35
             const overallFillRatio = totalMatchedPixels / totalGuidePixels;
             if (overallFillRatio < 0.35) return;
 
@@ -455,7 +473,6 @@
                     const cell = grid[gy][gx];
                     if (cell.guidePixels > 10) {
                         activeBlocks++;
-                        // マス内被覆率を 40% に設定して無理な塗りつぶしを抑止
                         if ((cell.matchedPixels / cell.guidePixels) >= 0.40) {
                             satisfiedBlocks++;
                         }
@@ -468,7 +485,7 @@
             const blockCoverageRatio = satisfiedBlocks / activeBlocks;
             const precisionRatio = totalMatchedPixels / totalDrawnPixels;
 
-            // 筆記となぞり書きの操作感に合わせたクリア条件
+            // クリア判定
             if (blockCoverageRatio >= 0.65 && precisionRatio >= 0.20) {
                 isCompleted = true;
                 statusDiv.textContent = '✨ PERFECT!';
