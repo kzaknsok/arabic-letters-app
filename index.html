@@ -324,7 +324,7 @@
             // ガイド描画のピクセル位置から「お手本の点群」を抽出・生成する
             const imgData = guideCtx.getImageData(0, 0, 450, 450).data;
             let rawPoints = [];
-            
+
             // ピクセルをスキャン（右から左、上から下：アラビア語の運筆傾向に合わせる）
             for (let x = 449; x >= 0; x -= 4) {
                 for (let y = 0; y < 450; y += 4) {
@@ -403,25 +403,48 @@
         // --- $1 Recognizer アルゴリズム核心部 ---
 
         function evaluateStroke() {
-            if (userPoints.length < 10) return; // 短すぎる線の無視
+            const w = 450, h = 450;
+            const guideData = guideCtx.getImageData(0, 0, w, h).data;
+            const drawData = drawCtx.getImageData(0, 0, w, h).data;
 
-            // 1. ユーザーの描画した軌跡を正規化
-            const normUser = normalizeStroke(userPoints);
+            let guidePixelCount = 0;      // ガイド文字の全体の広さ
+            let matchedPixelCount = 0;    // ガイドの上を正しく塗れた広さ
+            let totalDrawnPixelCount = 0; // ユーザーが塗ったすべての広さ
 
-            // 2. お手本ストロークとの類似度（平均距離）を計算
-            const distance = pathDistance(normUser, templatePoints);
+            for (let i = 0; i < guideData.length; i += 4) {
+                const isGuidePixel = guideData[i + 3] > 15;
+                const isDrawPixel = drawData[i + 3] > 15;
 
-            // デバッグ表示（コンソールで確認可能）
-            // console.log("Stroke Distance Score:", distance);
+                if (isGuidePixel) {
+                    guidePixelCount++;
+                    if (isDrawPixel) {
+                        matchedPixelCount++;
+                    }
+                }
 
-            // 閾値判定 (距離が一定以下＝形・流れが合致している)
-            // 塗りつぶしを行うと点群がグチャグチャになり、距離は 100~300 以上に跳ね上がります
-            if (distance < 45) {
+                if (isDrawPixel) {
+                    totalDrawnPixelCount++;
+                }
+            }
+
+            if (guidePixelCount === 0 || totalDrawnPixelCount === 0) return;
+
+            // 1. カバー率：ガイドの何％を塗れたか（例: 50%以上塗れていればOK！）
+            const coverageRatio = matchedPixelCount / guidePixelCount;
+
+            // 2. 精度：塗った面積のうち、ガイドからはみ出ていない割合（例: 40%以上がガイド内ならOK！）
+            const precisionRatio = matchedPixelCount / totalDrawnPixelCount;
+
+            // 塗りつぶすと precisionRatio（精度）が 10%〜20% 以下に激減するため不合格になります。
+            // 一方で、少しくらい手ぶれしてはみ出しても 40% 以上はキープできるため、普通になぞれば合格できます！
+
+            if (coverageRatio >= 0.50 && precisionRatio >= 0.40) {
                 isCompleted = true;
                 statusDiv.textContent = '✨ PERFECT!';
                 playSound();
             } else {
-                statusDiv.textContent = '❌ もういちど！';
+                // 失敗してもプレッシャーを与えないメッセージ
+                statusDiv.textContent = 'もう少しなぞってみよう！';
                 setTimeout(() => {
                     if (!isCompleted) statusDiv.textContent = '';
                 }, 1200);
