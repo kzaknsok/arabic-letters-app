@@ -289,10 +289,10 @@
             btnClear.addEventListener('click', clearUserCanvas);
             btnSound.addEventListener('click', playSound);
 
-            // ユーザーの最初の操作でWeb Audioによるアンロック処理を実行
-            document.addEventListener('pointerdown', unlockAudio, { once: true });
-            document.addEventListener('click', unlockAudio, { once: true });
-
+            // init() 内の該当箇所
+            // 画面上の最初の操作で無音アンロックを実行
+            document.addEventListener('pointerdown', unlockAudio);
+            document.addEventListener('click', unlockAudio);
             setupDrawingEvents();
             renderAll();
         }
@@ -347,8 +347,14 @@
         }
 
         // Web Audio APIのダミー音出力を使って、実際の音声を流さずに無音でブラウザ権限を完全解除
+        // 修正後の unlockAudio 関数
         function unlockAudio() {
             if (isAudioUnlocked) return;
+            isAudioUnlocked = true; // 最初にフラグを立てて二重実行をブロック
+
+            // イベントリスナーを即座に解除して重複発火を防ぐ
+            document.removeEventListener('pointerdown', unlockAudio);
+            document.removeEventListener('click', unlockAudio);
 
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -360,7 +366,6 @@
                     source.connect(ctx.destination);
                     source.start(0);
                 }
-                isAudioUnlocked = true;
             } catch (e) {
                 console.error("Audio unlock error:", e);
             }
