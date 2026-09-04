@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Arabic Letters App - Ultra Obsidian Glass</title>
+  <style>
+    * { box-sizing: border-box; touch-action: none; }
+    
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      /* 漆黒〜深みのあるダークグレーのグラデーション */
+      background: #050507;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(255, 255, 255, 0.03) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.05) 0px, transparent 50%),
+        linear-gradient(180deg, #09090b 0%, #18181b 50%, #050507 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #f4f4f5;
+      overflow-x: hidden;
+    }
+
+    /* 光沢と透過感を最大化したグラスモーフィズムカード */
+    .card {
+      position: relative;
+      background: rgba(18, 18, 20, 0.4);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: 
+        0 30px 60px -12px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    select, button {
+      padding: 12px 16px;
+      font-size: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #f4f4f5;
+      outline: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    select {
+      background: rgba(24, 24, 27, 0.6);
+      backdrop-filter: blur(8px);
+      color: #f4f4f5;
+      cursor: pointer;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    select option {
+      background: #18181b;
+      color: #f4f4f5;
+    }
+
+    button {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.8) 0%, rgba(37, 99, 235, 0.8) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    button:active {
+      transform: scale(0.96);
+      opacity: 0.9;
+    }
+
+    .pos-btns {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 16px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 5px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .pos-btn {
+      flex: 1;
+      padding: 8px 0;
+      font-size: 13px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: #71717a;
+      border-radius: 12px;
+      box-shadow: none;
+    }
+
+    .pos-btn.active {
+      background: rgba(255, 255, 255, 0.07);
+      color: #38bdf8;
+      font-weight: 600;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      max-width: 440px;
+      aspect-ratio: 1 / 1;
+      margin: 0 auto;
+      border-radius: 22px;
+      background: rgba(9, 9, 11, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 
+        inset 0 4px 20px rgba(0, 0, 0, 0.8),
+        0 1px 0 rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #guideCanvas { z-index: 1; }
+    #drawCanvas { z-index: 2; }
+
+    #status {
+      margin-top: 16px;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 0.05em;
+      height: 28px;
+      color: #38bdf8;
+      text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+    }
+
+    .bottom-btns {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .bottom-btns button {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #a1a1aa;
+      box-shadow: none;
+    }
+
+    .bottom-btns button:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: #f4f4f5;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="controls">
+    <select id="letterSelect" style="flex: 2;"></select>
+    <button id="btnSound" style="flex: 1;">🔊 発音</button>
+  </div>
+
+  <div class="pos-btns" id="posGroup">
+    <button class="pos-btn active" data-pos="0">独立</button>
+    <button class="pos-btn" data-pos="1">語頭</button>
+    <button class="pos-btn" data-pos="2">語中</button>
+    <button class="pos-btn" data-pos="3">語尾</button>
+  </div>
+
+  <div class="canvas-container">
+    <canvas id="guideCanvas" width="450" height="450"></canvas>
+    <canvas id="drawCanvas" width="450" height="450"></canvas>
+  </div>
+
+  <div id="status"></div>
+  
+  <div class="bottom-btns">
+    <button id="btnClear">クリア</button>
+  </div>
+</div>
+
+<script>
+const ARABIC_LETTERS = [
+  { name: "1. Alif (アリフ)", forms: ["ا", "ا", "ـا", "ـا"] },
+  { name: "2. Ba (バー)", forms: ["ب", "بـ", "ـبـ", "ـب"] },
+  { name: "3. Ta (ター)", forms: ["ت", "تـ", "ـتـ", "ـت"] },
+  { name: "4. Tha (サー)", forms: ["ث", "ثـ", "ـثـ", "ـث"] },
+  { name: "5. Jim (ジーム)", forms: ["ج", "جـ", "ـجـ", "ـج"] },
+  { name: "6. Ha (ハー)", forms: ["ح", "حـ", "ـحـ", "ـح"] },
+  { name: "7. Kha (ハー)", forms: ["خ", "خـ", "ـخـ", "ـخ"] },
+  { name: "8. Dal (ダール)", forms: ["د", "د", "ـد", "ـد"] },
+  { name: "9. Dhal (ザール)", forms: ["ذ", "ذ", "ـذ", "ـذ"] },
+  { name: "10. Ra (ラー)", forms: ["ر", "ر", "ـر", "ـر"] },
+  { name: "11. Zay (ザイ)", forms: ["ز", "ز", "ـز", "ـز"] },
+  { name: "12. Sin (シーン)", forms: ["س", "سـ", "ـسـ", "ـس"] },
+  { name: "13. Shin (シーン)", forms: ["ش", "شـ", "ـشـ", "ـش"] },
+  { name: "14. Sad (サード)", forms: ["ص", "صـ", "ـصـ", "ـص"] },
+  { name: "15. Dad (ダード)", forms: ["ض", "ضـ", "ـضـ", "ـض"] },
+  { name: "16. Ta (ター/強調)", forms: ["ط", "طـ", "ـطـ", "ـط"] },
+  { name: "17. Dha (ザー/強調)", forms: ["ظ", "ظـ", "ـظـ", "ـظ"] },
+  { name: "18. Ayn (アイン)", forms: ["ع", "عـ", "ـعـ", "ـع"] },
+  { name: "19. Ghayn (ガイン)", forms: ["غ", "غـ", "ـغـ", "ـغ"] },
+  { name: "20. Fa (ファー)", forms: ["ف", "فـ", "ـفـ", "ـف"] },
+  { name: "21. Qaf (カーフ)", forms: ["ق", "قـ", "ـقـ", "ـق"] },
+  { name: "22. Kaf (カーフ)", forms: ["ك", "كـ", "ـكـ", "ـك"] },
+  { name: "23. Lam (ラーム)", forms: ["ل", "لـ", "ـلـ", "ـل"] },
+  { name: "24. Mim (ミーム)", forms: ["م", "مـ", "ـمـ", "ـم"] },
+  { name: "25. Nun (ヌーン)", forms: ["ن", "نـ", "ـنـ", "ـن"] },
+  { name: "26. Ha (ハー)", forms: ["ه", "هـ", "ـهـ", "ـه"] },
+  { name: "27. Waw (ワウ)", forms: ["و", "و", "ـو", "ـو"] },
+  { name: "28. Ya (ヤー)", forms: ["ي", "يـ", "ـيـ", "ـي"] }
+];
+
+let currentLetterIndex = 0;
+let currentPosIndex = 0;
+let isDrawing = false;
+let isCompleted = false;
+
+const letterSelect = document.getElementById('letterSelect');
+const guideCanvas = document.getElementById('guideCanvas');
+const drawCanvas = document.getElementById('drawCanvas');
+const guideCtx = guideCanvas.getContext('2d');
+const drawCtx = drawCanvas.getContext('2d');
+const btnSound = document.getElementById('btnSound');
+const btnClear = document.getElementById('btnClear');
+const statusDiv = document.getElementById('status');
+const posButtons = document.querySelectorAll('.pos-btn');
+
+function init() {
+  ARABIC_LETTERS.forEach((item, index) => {
+    const opt = document.createElement('option');
+    opt.value = index;
+    opt.textContent = item.name;
+    letterSelect.appendChild(opt);
+  });
+
+  letterSelect.addEventListener('change', (e) => {
+    currentLetterIndex = parseInt(e.target.value);
+    renderAll();
+  });
+
+  posButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      posButtons.forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      currentPosIndex = parseInt(e.target.getAttribute('data-pos'));
+      renderAll();
+    });
+  });
+
+  btnSound.addEventListener('click', playSound);
+  btnClear.addEventListener('click', clearUserCanvas);
+
+  setupDrawingEvents();
+  renderAll();
+}
+
+function renderAll() {
+  clearUserCanvas();
+  drawGuide();
+}
+
+function drawGuide() {
+  guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+  
+  // ダークテーマに映える落ち着いた赤破線
+  guideCtx.strokeStyle = 'rgba(244, 63, 94, 0.25)';
+  guideCtx.lineWidth = 1.5;
+  guideCtx.setLineDash([8, 8]);
+  guideCtx.beginPath();
+  guideCtx.moveTo(0, 300); guideCtx.lineTo(450, 300);
+  guideCtx.stroke();
+  guideCtx.setLineDash([]);
+
+  const char = ARABIC_LETTERS[currentLetterIndex].forms[currentPosIndex];
+  guideCtx.font = '280px "Traditional Arabic", "Amiri", "Segoe UI", sans-serif';
+  // 透き通る白い文字ガイド
+  guideCtx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+  guideCtx.textAlign = 'center';
+  guideCtx.textBaseline = 'alphabetic';
+  guideCtx.fillText(char, 225, 300);
+}
+
+function clearUserCanvas() {
+  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+  statusDiv.textContent = '';
+  isCompleted = false;
+}
+
+function playSound() {
+  const char = ARABIC_LETTERS[currentLetterIndex].forms[0];
+  const apiUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(char)}&tl=ar&client=tw-ob`;
+
+  const audio = new Audio();
+  audio.src = apiUrl;
+
+  audio.play().catch(err => {
+    console.warn("API再生エラーのため端末TTSへ切り替えます:", err);
+    fallbackTTS(char);
+  });
+}
+
+function fallbackTTS(char) {
+  const utterance = new SpeechSynthesisUtterance(char);
+  utterance.lang = 'ar-SA';
+  utterance.rate = 0.8;
+  window.speechSynthesis.speak(utterance);
+}
+
+function setupDrawingEvents() {
+  drawCtx.lineCap = 'round';
+  drawCtx.lineJoin = 'round';
+  drawCtx.lineWidth = 32;
+  // ネオンブルーの発光感のある描画線
+  drawCtx.strokeStyle = '#38bdf8';
+
+  const getPos = (e) => {
+    const rect = drawCanvas.getBoundingClientRect();
+    const scaleX = drawCanvas.width / rect.width;
+    const scaleY = drawCanvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  };
+
+  const startDraw = (e) => {
+    if (isCompleted) return;
+    isDrawing = true;
+    const pos = getPos(e);
+    drawCtx.beginPath();
+    drawCtx.moveTo(pos.x, pos.y);
+  };
+
+  const moveDraw = (e) => {
+    if (!isDrawing || isCompleted) return;
+    const pos = getPos(e);
+    drawCtx.lineTo(pos.x, pos.y);
+    drawCtx.stroke();
+    checkCoverage();
+  };
+
+  const endDraw = () => {
+    if (isDrawing) {
+      isDrawing = false;
+      checkCoverage();
+    }
+  };
+
+  drawCanvas.addEventListener('pointerdown', startDraw);
+  drawCanvas.addEventListener('pointermove', moveDraw);
+  drawCanvas.addEventListener('pointerup', endDraw);
+  drawCanvas.addEventListener('pointerleave', endDraw);
+}
+
+function checkCoverage() {
+  if (isCompleted) return;
+
+  const w = 450, h = 450;
+  const guideData = guideCtx.getImageData(0, 0, w, h).data;
+  const drawData = drawCtx.getImageData(0, 0, w, h).data;
+
+  let guidePixelCount = 0;
+  let matchedPixelCount = 0;
+
+  for (let i = 0; i < guideData.length; i += 4) {
+    const isGuidePixel = guideData[i + 3] > 10;
+    const isDrawPixel = drawData[i + 3] > 10;
+
+    if (isGuidePixel) {
+      guidePixelCount++;
+      if (isDrawPixel) matchedPixelCount++;
+    }
+  }
+
+  if (guidePixelCount === 0) return;
+
+  const coverageRatio = matchedPixelCount / guidePixelCount;
+
+  if (coverageRatio >= 0.81) {
+    isCompleted = true;
+    statusDiv.textContent = '✨ PERFECT!';
+    playSound();
+  }
+}
+
+window.onload = init;
+</script>
+
+</body>
+</html>
