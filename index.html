@@ -327,7 +327,7 @@
         function setupDrawingEvents() {
             drawCtx.lineCap = 'round';
             drawCtx.lineJoin = 'round';
-            drawCtx.lineWidth = 32;
+            drawCtx.lineWidth = 18; // 32 -> 18 に細くして大雑把な塗りを防止
             drawCtx.strokeStyle = '#38bdf8';
 
             const getPos = (e) => {
@@ -393,7 +393,8 @@
 
             const coverageRatio = matchedPixelCount / guidePixelCount;
 
-            if (coverageRatio >= 0.81) {
+            // 81% -> 96% に変更（端までぴったり綺麗になぞらないとクリアできません）
+            if (coverageRatio >= 0.96) {
                 isCompleted = true;
                 statusDiv.textContent = '✨ PERFECT!';
                 playSound();
